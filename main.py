@@ -67,7 +67,7 @@ def addItem():
         with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
             try:
                 cur = conn.cursor()
-                cur.execute('''INSERT INTO products (name, price, description, image, stock, categoryId) VALUES (%s, ?, ?, ?, ?, ?)''', (name, price, description, imagename, stock, categoryId))
+                cur.execute('''INSERT INTO products (name, price, description, image, stock, categoryId) VALUES (%s, %s, %s, %s, %s, %s)''', (name, price, description, imagename, stock, categoryId))
                 conn.commit()
                 msg="added successfully"
             except:
@@ -150,7 +150,7 @@ def changePassword():
             userId, password = x
             if (password == oldPassword):
                 try:
-                    cur.execute("UPDATE users SET password = %s WHERE userId = ?", (newPassword, userId))
+                    cur.execute("UPDATE users SET password = %s WHERE userId = %s", (newPassword, userId))
                     conn.commit()
                     msg="Changed successfully"
                 except:
@@ -180,7 +180,7 @@ def updateProfile():
         with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as con:
                 try:
                     cur = con.cursor()
-                    cur.execute('UPDATE users SET firstName = %s, lastName = ?, address1 = ?, address2 = ?, zipcode = ?, city = ?, state = ?, country = ?, phone = ? WHERE email = ?', (firstName, lastName, address1, address2, zipcode, city, state, country, phone, email))
+                    cur.execute('UPDATE users SET firstName = %s, lastName = %s, address1 = %s, address2 = %s, zipcode = %s, city = %s, state = %s, country = %s, phone = %s WHERE email = %s', (firstName, lastName, address1, address2, zipcode, city, state, country, phone, email))
 
                     con.commit()
                     msg = "Saved Successfully"
@@ -231,7 +231,7 @@ def addToCart():
             cur.execute("SELECT userId FROM users WHERE email = %s", (session['email'], ))
             userId = cur.fetchone()[0]
             try:
-                cur.execute("INSERT INTO kart (userId, productId) VALUES (%s, ?)", (userId, productId))
+                cur.execute("INSERT INTO kart (userId, productId) VALUES (%s, %s)", (userId, productId))
                 conn.commit()
                 msg = "Added successfully"
             except:
@@ -268,7 +268,7 @@ def removeFromCart():
         cur.execute("SELECT userId FROM users WHERE email = %s", (email, ))
         userId = cur.fetchone()[0]
         try:
-            cur.execute("DELETE FROM kart WHERE userId = %s AND productId = ?", (userId, productId))
+            cur.execute("DELETE FROM kart WHERE userId = %s AND productId = %s", (userId, productId))
             conn.commit()
             msg = "removed successfully"
         except:
