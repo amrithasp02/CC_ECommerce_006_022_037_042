@@ -1,6 +1,6 @@
 from flask import *
 import sys
-import sqlite3, hashlib, os
+import mysql.connector, hashlib, os
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -8,9 +8,10 @@ app.secret_key = 'random string'
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = set(['jpeg', 'jpg', 'png', 'gif'])
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+session = {}
 
 def getLoginDetails():
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         cur = conn.cursor()
         if 'email' not in session:
             loggedIn = False
@@ -18,9 +19,11 @@ def getLoginDetails():
             noOfItems = 0
         else:
             loggedIn = True
-            cur.execute("SELECT userId, firstName FROM users WHERE email = ?", (session['email'], ))
-            userId, firstName = cur.fetchone()
-            cur.execute("SELECT count(productId) FROM kart WHERE userId = ?", (userId, ))
+            cur.execute("SELECT userId, firstName FROM users WHERE email = %s", (session['email'], ))
+            x = cur.fetchone()
+            print(x)
+            userId, firstName = x
+            cur.execute("SELECT count(productId) FROM kart WHERE userId = %s", (userId, ))
             noOfItems = cur.fetchone()[0]
     conn.close()
     return (loggedIn, firstName, noOfItems)
@@ -28,7 +31,7 @@ def getLoginDetails():
 @app.route("/")
 def root():
     loggedIn, firstName, noOfItems = getLoginDetails()
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         cur = conn.cursor()
         cur.execute('SELECT productId, name, price, description, image, stock FROM products')
         itemData = cur.fetchall()
@@ -39,7 +42,7 @@ def root():
 
 @app.route("/add")
 def admin():
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         cur = conn.cursor()
         cur.execute("SELECT categoryId, name FROM categories")
         categories = cur.fetchall()
@@ -61,10 +64,10 @@ def addItem():
             filename = secure_filename(image.filename)
             image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         imagename = filename
-        with sqlite3.connect('database.db') as conn:
+        with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
             try:
                 cur = conn.cursor()
-                cur.execute('''INSERT INTO products (name, price, description, image, stock, categoryId) VALUES (?, ?, ?, ?, ?, ?)''', (name, price, description, imagename, stock, categoryId))
+                cur.execute('''INSERT INTO products (name, price, description, image, stock, categoryId) VALUES (%s, ?, ?, ?, ?, ?)''', (name, price, description, imagename, stock, categoryId))
                 conn.commit()
                 msg="added successfully"
             except:
@@ -76,7 +79,7 @@ def addItem():
 
 @app.route("/remove")
 def remove():
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         cur = conn.cursor()
         cur.execute('SELECT productId, name, price, description, image, stock FROM products')
         data = cur.fetchall()
@@ -86,10 +89,10 @@ def remove():
 @app.route("/removeItem")
 def removeItem():
     productId = request.args.get('productId')
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         try:
             cur = conn.cursor()
-            cur.execute('DELETE FROM products WHERE productID = ?', (productId, ))
+            cur.execute('DELETE FROM products WHERE productID = %s', (productId, ))
             conn.commit()
             msg = "Deleted successsfully"
         except:
@@ -103,9 +106,9 @@ def removeItem():
 def displayCategory():
         loggedIn, firstName, noOfItems = getLoginDetails()
         categoryId = request.args.get("categoryId")
-        with sqlite3.connect('database.db') as conn:
+        with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
             cur = conn.cursor()
-            cur.execute("SELECT products.productId, products.name, products.price, products.image, categories.name FROM products, categories WHERE products.categoryId = categories.categoryId AND categories.categoryId = ?", (categoryId, ))
+            cur.execute("SELECT products.productId, products.name, products.price, products.image, categories.name FROM products, categories WHERE products.categoryId = categories.categoryId AND categories.categoryId = %s", (categoryId, ))
             data = cur.fetchall()
         conn.close()
         categoryName = data[0][4]
@@ -124,9 +127,9 @@ def editProfile():
     if 'email' not in session:
         return redirect(url_for('root'))
     loggedIn, firstName, noOfItems = getLoginDetails()
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         cur = conn.cursor()
-        cur.execute("SELECT userId, email, firstName, lastName, address1, address2, zipcode, city, state, country, phone FROM users WHERE email = ?", (session['email'], ))
+        cur.execute("SELECT userId, email, firstName, lastName, address1, address2, zipcode, city, state, country, phone FROM users WHERE email = %s", (session['email'], ))
         profileData = cur.fetchone()
     conn.close()
     return render_template("editProfile.html", profileData=profileData, loggedIn=loggedIn, firstName=firstName, noOfItems=noOfItems)
@@ -140,13 +143,14 @@ def changePassword():
         oldPassword = hashlib.md5(oldPassword.encode()).hexdigest()
         newPassword = request.form['newpassword']
         newPassword = hashlib.md5(newPassword.encode()).hexdigest()
-        with sqlite3.connect('database.db') as conn:
+        with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
             cur = conn.cursor()
-            cur.execute("SELECT userId, password FROM users WHERE email = ?", (session['email'], ))
-            userId, password = cur.fetchone()
+            cur.execute("SELECT userId, password FROM users WHERE email = %s", (session['email'], ))
+            x = cur.fetchone()
+            userId, password = x
             if (password == oldPassword):
                 try:
-                    cur.execute("UPDATE users SET password = ? WHERE userId = ?", (newPassword, userId))
+                    cur.execute("UPDATE users SET password = %s WHERE userId = ?", (newPassword, userId))
                     conn.commit()
                     msg="Changed successfully"
                 except:
@@ -173,10 +177,10 @@ def updateProfile():
         state = request.form['state']
         country = request.form['country']
         phone = request.form['phone']
-        with sqlite3.connect('database.db') as con:
+        with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as con:
                 try:
                     cur = con.cursor()
-                    cur.execute('UPDATE users SET firstName = ?, lastName = ?, address1 = ?, address2 = ?, zipcode = ?, city = ?, state = ?, country = ?, phone = ? WHERE email = ?', (firstName, lastName, address1, address2, zipcode, city, state, country, phone, email))
+                    cur.execute('UPDATE users SET firstName = %s, lastName = ?, address1 = ?, address2 = ?, zipcode = ?, city = ?, state = ?, country = ?, phone = ? WHERE email = ?', (firstName, lastName, address1, address2, zipcode, city, state, country, phone, email))
 
                     con.commit()
                     msg = "Saved Successfully"
@@ -209,9 +213,9 @@ def login():
 def productDescription():
     loggedIn, firstName, noOfItems = getLoginDetails()
     productId = request.args.get('productId')
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         cur = conn.cursor()
-        cur.execute('SELECT productId, name, price, description, image, stock FROM products WHERE productId = ?', (productId, ))
+        cur.execute('SELECT productId, name, price, description, image, stock FROM products WHERE productId = %s', (productId, ))
         productData = cur.fetchone()
     conn.close()
     return render_template("productDescription.html", data=productData, loggedIn = loggedIn, firstName = firstName, noOfItems = noOfItems)
@@ -222,12 +226,12 @@ def addToCart():
         return redirect(url_for('loginForm'))
     else:
         productId = int(request.args.get('productId'))
-        with sqlite3.connect('database.db') as conn:
+        with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
             cur = conn.cursor()
-            cur.execute("SELECT userId FROM users WHERE email = ?", (session['email'], ))
+            cur.execute("SELECT userId FROM users WHERE email = %s", (session['email'], ))
             userId = cur.fetchone()[0]
             try:
-                cur.execute("INSERT INTO kart (userId, productId) VALUES (?, ?)", (userId, productId))
+                cur.execute("INSERT INTO kart (userId, productId) VALUES (%s, ?)", (userId, productId))
                 conn.commit()
                 msg = "Added successfully"
             except:
@@ -242,11 +246,11 @@ def cart():
         return redirect(url_for('loginForm'))
     loggedIn, firstName, noOfItems = getLoginDetails()
     email = session['email']
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         cur = conn.cursor()
-        cur.execute("SELECT userId FROM users WHERE email = ?", (email, ))
+        cur.execute("SELECT userId FROM users WHERE email = %s", (email, ))
         userId = cur.fetchone()[0]
-        cur.execute("SELECT products.productId, products.name, products.price, products.image FROM products, kart WHERE products.productId = kart.productId AND kart.userId = ?", (userId, ))
+        cur.execute("SELECT products.productId, products.name, products.price, products.image FROM products, kart WHERE products.productId = kart.productId AND kart.userId = %s", (userId, ))
         products = cur.fetchall()
     totalPrice = 0
     for row in products:
@@ -259,12 +263,12 @@ def removeFromCart():
         return redirect(url_for('loginForm'))
     email = session['email']
     productId = int(request.args.get('productId'))
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         cur = conn.cursor()
-        cur.execute("SELECT userId FROM users WHERE email = ?", (email, ))
+        cur.execute("SELECT userId FROM users WHERE email = %s", (email, ))
         userId = cur.fetchone()[0]
         try:
-            cur.execute("DELETE FROM kart WHERE userId = ? AND productId = ?", (userId, productId))
+            cur.execute("DELETE FROM kart WHERE userId = %s AND productId = ?", (userId, productId))
             conn.commit()
             msg = "removed successfully"
         except:
@@ -279,7 +283,7 @@ def logout():
     return redirect(url_for('root'))
 
 def is_valid(email, password):
-    con = sqlite3.connect('database.db')
+    con = mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test")
     cur = con.cursor()
     cur.execute('SELECT email, password FROM users')
     data = cur.fetchall()
@@ -304,16 +308,17 @@ def register():
         country = request.form['country']
         phone = request.form['phone']
 
-        with sqlite3.connect('database.db') as con:
+        with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as con:
             try:
                 cur = con.cursor()
-                cur.execute('INSERT INTO users (password, email, firstName, lastName, address1, address2, zipcode, city, state, country, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (hashlib.md5(password.encode()).hexdigest(), email, firstName, lastName, address1, address2, zipcode, city, state, country, phone))
+                cur.execute('INSERT INTO users (password, email, firstName, lastName, address1, address2, zipcode, city, state, country, phone) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (hashlib.md5(password.encode()).hexdigest(), email, firstName, lastName, address1, address2, zipcode, city, state, country, phone))
 
                 con.commit()
 
                 msg = "Registered Successfully"
-            except:
+            except Exception as e:
                 con.rollback()
+                print(e)
                 msg = "Error occured"
         con.close()
         return render_template("login.html", error=msg)
@@ -323,12 +328,12 @@ def checkout():
     if 'email' not in session:
         return redirect(url_for('loginForm'))
     email = session['email']
-    with sqlite3.connect('database.db') as conn:
+    with mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test") as conn:
         cur = conn.cursor()
-        cur.execute("SELECT userId FROM users WHERE email = ?", (email, ))
+        cur.execute("SELECT userId FROM users WHERE email = %s", (email, ))
         userId = cur.fetchone()[0]
         try:
-            cur.execute("DELETE FROM kart WHERE userId = ?", (userId, ))
+            cur.execute("DELETE FROM kart WHERE userId = %s", (userId, ))
             conn.commit()
             msg = "removed successfully"
         except Exception as e:

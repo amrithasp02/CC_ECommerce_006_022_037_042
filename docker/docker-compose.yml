@@ -1,0 +1,21 @@
+services:
+    db:
+        image: mysql:latest
+        ports:
+            - "3306:3306"
+        container_name: mysql_container
+        environment:
+            MYSQL_ROOT_PASSWORD: totallysecurepass
+        volumes:
+            - ./mdbdata:/var/lib/mysql
+            - ./volumes:/volumes
+        networks:
+            net-172.19.50.0:
+                ipv4_address: 172.19.50.2
+
+networks:
+    net-172.19.50.0:
+        name: net-172.19.50.0
+        ipam:
+            config:
+                - subnet: 172.19.50.0/24

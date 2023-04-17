@@ -1,11 +1,13 @@
-import sqlite3
+import mysql.connector
 
 #Open database
-conn = sqlite3.connect('database.db')
+conn = mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test")
+
+cursor = conn.cursor()
 
 #Create table
-conn.execute('''CREATE TABLE users 
-		(userId INTEGER PRIMARY KEY, 
+cursor.execute('''CREATE TABLE IF NOT EXISTS users 
+		(userId INTEGER PRIMARY KEY AUTO_INCREMENT, 
 		password TEXT,
 		email TEXT,
 		firstName TEXT,
@@ -19,7 +21,13 @@ conn.execute('''CREATE TABLE users
 		phone TEXT
 		)''')
 
-conn.execute('''CREATE TABLE products
+cursor.execute('''CREATE TABLE IF NOT EXISTS categories
+		(categoryId INTEGER PRIMARY KEY,
+		name TEXT
+		)''')
+
+
+cursor.execute('''CREATE TABLE IF NOT EXISTS products
 		(productId INTEGER PRIMARY KEY,
 		name TEXT,
 		price REAL,
@@ -30,16 +38,11 @@ conn.execute('''CREATE TABLE products
 		FOREIGN KEY(categoryId) REFERENCES categories(categoryId)
 		)''')
 
-conn.execute('''CREATE TABLE kart
+cursor.execute('''CREATE TABLE IF NOT EXISTS kart
 		(userId INTEGER,
 		productId INTEGER,
 		FOREIGN KEY(userId) REFERENCES users(userId),
 		FOREIGN KEY(productId) REFERENCES products(productId)
-		)''')
-
-conn.execute('''CREATE TABLE categories
-		(categoryId INTEGER PRIMARY KEY,
-		name TEXT
 		)''')
 
 
