@@ -6,9 +6,11 @@ services:
         container_name: mysql_container
         environment:
             MYSQL_ROOT_PASSWORD: totallysecurepass
+        command: --init-file /data/application/init.sql
         volumes:
             - ./mdbdata:/var/lib/mysql
             - ./volumes:/volumes
+            - ./init.sql:/data/application/init.sql
         networks:
             net-172.19.50.0:
                 ipv4_address: 172.19.50.2
