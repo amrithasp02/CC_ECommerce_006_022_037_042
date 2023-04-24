@@ -8,12 +8,22 @@ services:
             MYSQL_ROOT_PASSWORD: totallysecurepass
         command: --init-file /data/application/init.sql
         volumes:
-            - ./mdbdata:/var/lib/mysql
-            - ./volumes:/volumes
-            - ./init.sql:/data/application/init.sql
+            - ./mysql/mdbdata:/var/lib/mysql
+            - ./mysql/volumes:/volumes
+            - ./mysql/init.sql:/data/application/init.sql
         networks:
             net-172.19.50.0:
                 ipv4_address: 172.19.50.2
+    app:
+        build: ./python
+        image: python-docker
+        container_name: a_really_horrile_site
+        tty: true
+        networks:
+            net-172.19.50.0:
+                ipv4_address: 172.19.50.3
+        ports:
+            - "5000:5000"
 
 networks:
     net-172.19.50.0:
