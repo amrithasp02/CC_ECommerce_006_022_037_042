@@ -1,7 +1,15 @@
 import mysql.connector
+import time
 
 #Open database
-conn = mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test")
+not_connected = True
+while (not_connected):
+    try:
+        conn = mysql.connector.connect(user="root", password="totallysecurepass", host="172.19.50.2", db="test")
+        not_connected = False
+    except:
+        time.sleep(5)
+        continue
 
 cursor = conn.cursor()
 
